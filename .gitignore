@@ -1,0 +1,44 @@
+# --- 二进制编译产物 ---
+bin/
+out/
+dist/
+# 常见的可执行文件名（根据你的项目修改）
+main
+app
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# --- Go 依赖与测试 ---
+# vendor 目录通常不建议提交（除非有特殊需求）
+# vendor/
+# 测试覆盖率文件
+*.out
+*.test
+*.prof
+
+# --- 操作系统与日志 ---
+.DS_Store
+*.log
+tmp/
+
+# --- 环境变量与私密信息 ---
+.env
+.env.local
+.env.*.local
+# 个人开发者的证书或私钥
+*.pem
+*.key
+
+# --- IDE 相关 (重点：GoLand/JetBrains) ---
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# --- 其他工具 ---
+# 如果使用 meilisearch 或 redis 产生的本地数据
+data/
+dump.rdb
