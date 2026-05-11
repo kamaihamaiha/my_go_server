@@ -42,3 +42,4 @@ tmp/
 # 如果使用 meilisearch 或 redis 产生的本地数据
 data/
 dump.rdb
+.cache/
