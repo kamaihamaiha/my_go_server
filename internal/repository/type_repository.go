@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"my_law_server/internal/model"
+	"LawHelperServer/internal/model"
 )
 
 type TypeRepository struct {

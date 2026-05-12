@@ -28,6 +28,7 @@ ORM：GORM
 相关文档：
 - 启动说明：`docs/start.md`
 - 实现计划：`docs/http-service-plan.md`
+- 解析后 JSON 放置说明：`data/law_json/README.md`
 
 
 ---
@@ -41,3 +42,5 @@ GET /api/v1/types/previews：只返回有直接法律数据的具体分类，每
 GET /api/v1/types/:typeId/laws：支持 page 和 pageSize 分页，默认按 effectDate DESC，空生效日期排后，再按 publishDate DESC。
 GET /api/v1/laws/:versionId/parsed：预留本地 JSON 文件读取；文件不存在时返回“暂无解析数据”的占位 JSON。
 文档和测试也补上了：计划文件在 docs/http-service-plan.md，启动说明在 docs/start.md，集成测试在 internal/server/router_test.go。我已经跑通了 GOTOOLCHAIN=local GOPROXY=https://goproxy.cn,direct go test
+
+如果要让 `GET /api/v1/laws/:versionId/parsed` 读到解析结果，需要把文件放到 `data/law_json/laws_by_type/type_<lawTypeId>/<versionId>.json`；如果改了环境变量 `LAW_DETAIL_JSON_DIR`，则放到对应目录下。

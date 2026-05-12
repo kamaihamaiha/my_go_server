@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/gin-gonic/gin"
 
-	"my_law_server/internal/handler"
+	"LawHelperServer/internal/handler"
 )
 
 func NewRouter(lawHandler *handler.LawHandler) *gin.Engine {

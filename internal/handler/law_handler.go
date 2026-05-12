@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"my_law_server/internal/response"
-	"my_law_server/internal/service"
+	"LawHelperServer/internal/response"
+	"LawHelperServer/internal/service"
 )
 
 type LawHandler struct {

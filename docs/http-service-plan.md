@@ -18,7 +18,8 @@
   - `page` 默认 1，`pageSize` 默认 20，最大 100。
 - `GET /api/v1/laws/:versionId/parsed`
   - 从本地目录读取解析后的 JSON 文件，目录由 `LAW_DETAIL_JSON_DIR` 指定，默认 `data/law_json`。
-  - 文件名固定为 `<versionId>.json`。
+  - 默认按分类目录读取：`laws_by_type/type_<lawTypeId>/<versionId>.json`。
+  - 兼容旧路径：`<versionId>.json`。
   - 命中时返回统一响应包，`data.available=true`，`data.content` 为原始解析 JSON（`json.RawMessage`）。
   - 文件缺失或目录不存在时返回 HTTP 200，`data.available=false`，`data.content=null`，`message` 为“暂无解析数据”。
   - `versionId` 在 `laws_list` 中不存在时返回 HTTP 404。

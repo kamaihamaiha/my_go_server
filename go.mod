@@ -1,4 +1,4 @@
-module my_law_server
+module LawHelperServer
 
 go 1.26.1
 

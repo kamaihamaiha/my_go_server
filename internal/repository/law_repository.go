@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"my_law_server/internal/model"
+	"LawHelperServer/internal/model"
 )
 
 const lawListOrder = `
@@ -62,7 +62,7 @@ func (r *LawRepository) GetMetaByVersionID(ctx context.Context, versionID string
 
 	err := r.db.WithContext(ctx).
 		Model(&model.LawList{}).
-		Select("versionId, title").
+		Select("versionId, title, lawTypeId").
 		Where("versionId = ?", versionID).
 		Take(&law).Error
 	if err != nil {

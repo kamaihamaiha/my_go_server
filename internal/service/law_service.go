@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	"my_law_server/internal/model"
-	"my_law_server/internal/repository"
+	"LawHelperServer/internal/model"
+	"LawHelperServer/internal/repository"
 )
 
 const (
@@ -138,7 +138,7 @@ func (s *LawService) GetParsedLaw(ctx context.Context, versionID string) (*Parse
 		return nil, ErrLawNotFound
 	}
 
-	raw, err := s.parsedLawRepo.GetByVersionID(ctx, versionID)
+	raw, err := s.parsedLawRepo.GetByVersionID(ctx, versionID, lawMeta.LawTypeID)
 	if err != nil {
 		if errors.Is(err, repository.ErrParsedLawNotFound) {
 			return &ParsedLawDetail{

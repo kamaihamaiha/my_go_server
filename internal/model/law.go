@@ -32,4 +32,5 @@ type LawSummary struct {
 type LawMeta struct {
 	VersionID string
 	Title     string
+	LawTypeID int
 }

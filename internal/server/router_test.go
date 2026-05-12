@@ -14,11 +14,11 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"my_law_server/internal/database"
-	"my_law_server/internal/handler"
-	"my_law_server/internal/repository"
-	"my_law_server/internal/server"
-	"my_law_server/internal/service"
+	"LawHelperServer/internal/database"
+	"LawHelperServer/internal/handler"
+	"LawHelperServer/internal/repository"
+	"LawHelperServer/internal/server"
+	"LawHelperServer/internal/service"
 )
 
 type envelope[T any] struct {
@@ -122,7 +122,7 @@ func TestListLawsByTypeSortsEmptyEffectDateLast(t *testing.T) {
 
 func TestGetParsedLawReturnsJSONWhenFileExists(t *testing.T) {
 	detailDir := t.TempDir()
-	writeTestJSONFile(t, detailDir, "law-parsed-1", []byte(`{"chapters":[{"id":1}],"title":"解析版法律"}`))
+	writeTypeJSONFile(t, detailDir, 110, "law-parsed-1", []byte(`{"chapters":[{"id":1}],"title":"解析版法律"}`))
 	router := newTestRouter(t, detailDir)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/laws/law-parsed-1/parsed", nil)
@@ -145,6 +145,34 @@ func TestGetParsedLawReturnsJSONWhenFileExists(t *testing.T) {
 
 	if got := content["title"]; got != "解析版法律" {
 		t.Fatalf("unexpected parsed title: got %v want %v", got, "解析版法律")
+	}
+}
+
+func TestGetParsedLawFallsBackToLegacyFlatPath(t *testing.T) {
+	detailDir := t.TempDir()
+	writeFlatJSONFile(t, detailDir, "law-parsed-1", []byte(`{"title":"旧目录解析版法律"}`))
+	router := newTestRouter(t, detailDir)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/laws/law-parsed-1/parsed", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d want %d", recorder.Code, http.StatusOK)
+	}
+
+	var resp envelope[service.ParsedLawDetail]
+	decodeJSON(t, recorder.Body.Bytes(), &resp)
+
+	if !resp.Data.Available || resp.Data.Content == nil {
+		t.Fatalf("expected parsed content to be available")
+	}
+
+	var content map[string]any
+	decodeJSON(t, *resp.Data.Content, &content)
+
+	if got := content["title"]; got != "旧目录解析版法律" {
+		t.Fatalf("unexpected parsed title: got %v want %v", got, "旧目录解析版法律")
 	}
 }
 
@@ -288,7 +316,19 @@ func insertLaw(t *testing.T, db *gorm.DB, versionID, title string, lawTypeID int
 	}
 }
 
-func writeTestJSONFile(t *testing.T, dir, versionID string, data []byte) {
+func writeTypeJSONFile(t *testing.T, dir string, lawTypeID int, versionID string, data []byte) {
+	t.Helper()
+
+	filePath := filepath.Join(dir, "laws_by_type", fmt.Sprintf("type_%d", lawTypeID), versionID+".json")
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		t.Fatalf("create parsed law dir: %v", err)
+	}
+	if err := os.WriteFile(filePath, data, 0o644); err != nil {
+		t.Fatalf("write parsed law json: %v", err)
+	}
+}
+
+func writeFlatJSONFile(t *testing.T, dir, versionID string, data []byte) {
 	t.Helper()
 
 	filePath := filepath.Join(dir, versionID+".json")

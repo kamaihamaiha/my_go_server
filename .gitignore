@@ -40,6 +40,9 @@ tmp/
 
 # --- 其他工具 ---
 # 如果使用 meilisearch 或 redis 产生的本地数据
-data/
+data/*
+!data/law_json/
+data/law_json/*
+!data/law_json/README.md
 dump.rdb
 .cache/
