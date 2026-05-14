@@ -34,3 +34,17 @@ type LawMeta struct {
 	Title     string
 	LawTypeID int
 }
+
+type SubTypeStat struct {
+	TypeID   int    `json:"typeId"`
+	TypeName string `json:"typeName"`
+	Count    int64  `json:"count"`
+}
+
+type BigGroupStat struct {
+	BigGroup string        `json:"bigGroup"`
+	Count    int64         `json:"count"`
+	HomeTag  bool          `json:"home_tag"`
+	More     bool          `json:"more"`
+	SubTypes []SubTypeStat `json:"subTypes"`
+}

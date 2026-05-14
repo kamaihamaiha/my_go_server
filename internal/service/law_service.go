@@ -127,6 +127,10 @@ func (s *LawService) ListLawsByType(ctx context.Context, typeID, page, pageSize 
 	}, nil
 }
 
+func (s *LawService) ListBigGroupStats(ctx context.Context) ([]model.BigGroupStat, error) {
+	return s.lawRepo.ListBigGroupStats(ctx)
+}
+
 func (s *LawService) GetParsedLaw(ctx context.Context, versionID string) (*ParsedLawDetail, error) {
 	versionID = strings.TrimSpace(versionID)
 

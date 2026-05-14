@@ -15,6 +15,7 @@ func NewRouter(lawHandler *handler.LawHandler) *gin.Engine {
 	api := router.Group("/api/v1")
 	api.GET("/types/previews", lawHandler.ListTypePreviews)
 	api.GET("/types/:typeId/laws", lawHandler.ListLawsByType)
+	api.GET("/laws/big-groups", lawHandler.ListBigGroupStats)
 	api.GET("/laws/:versionId/parsed", lawHandler.GetParsedLaw)
 
 	return router

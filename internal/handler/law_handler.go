@@ -69,6 +69,16 @@ func (h *LawHandler) ListLawsByType(c *gin.Context) {
 	response.Success(c, result)
 }
 
+func (h *LawHandler) ListBigGroupStats(c *gin.Context) {
+	stats, err := h.lawService.ListBigGroupStats(c.Request.Context())
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "查询大分类统计失败")
+		return
+	}
+
+	response.Success(c, stats)
+}
+
 func (h *LawHandler) GetParsedLaw(c *gin.Context) {
 	versionID := strings.TrimSpace(c.Param("versionId"))
 	if versionID == "" {

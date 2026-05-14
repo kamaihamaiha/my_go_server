@@ -57,6 +57,98 @@ func (r *LawRepository) CountByType(ctx context.Context, typeID int) (int64, err
 	return total, nil
 }
 
+type bigGroupRow struct {
+	BigGroup      string `gorm:"column:big_group"`
+	TypeID        int    `gorm:"column:type_id"`
+	TypeName      string `gorm:"column:type_name"`
+	Count         int64  `gorm:"column:cnt"`
+	Rank          int    `gorm:"column:rn"`
+	TotalSub      int    `gorm:"column:total_sub"`
+	BigGroupTotal int64  `gorm:"column:big_group_total"`
+	SortKey       int    `gorm:"column:sort_key"`
+}
+
+func (r *LawRepository) ListBigGroupStats(ctx context.Context) ([]model.BigGroupStat, error) {
+	const query = `
+WITH sub_counts AS (
+    SELECT
+        CASE COALESCE(t_parent.id, t.id)
+            WHEN 100 THEN '宪法'
+            WHEN 101 THEN '法律'
+            WHEN 102 THEN '法律'
+            WHEN 210 THEN '行政法规'
+            WHEN 220 THEN '监察法规'
+            WHEN 222 THEN '地方法规'
+            WHEN 320 THEN '司法解释'
+            WHEN 330 THEN '司法解释'
+            WHEN 340 THEN '司法解释'
+            WHEN 350 THEN '司法解释'
+        END AS big_group,
+        MIN(COALESCE(t_parent.id, t.id)) AS sort_key,
+        t.id  AS type_id,
+        t.name AS type_name,
+        COUNT(*) AS cnt
+    FROM laws_list l
+    JOIN types t ON l.lawTypeId = t.id
+    LEFT JOIN types t_parent ON t.parent_id = t_parent.id
+    GROUP BY big_group, t.id, t.name
+),
+ranked AS (
+    SELECT
+        big_group,
+        sort_key,
+        type_id,
+        type_name,
+        cnt,
+        ROW_NUMBER() OVER (PARTITION BY big_group ORDER BY cnt DESC) AS rn,
+        COUNT(*)     OVER (PARTITION BY big_group)                   AS total_sub,
+        SUM(cnt)     OVER (PARTITION BY big_group)                   AS big_group_total
+    FROM sub_counts
+)
+SELECT big_group, sort_key, type_id, type_name, cnt, rn, total_sub, big_group_total
+FROM ranked
+ORDER BY sort_key, rn`
+
+	var rows []bigGroupRow
+	if err := r.db.WithContext(ctx).Raw(query).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	return assembleBigGroups(rows), nil
+}
+
+func assembleBigGroups(rows []bigGroupRow) []model.BigGroupStat {
+	var result []model.BigGroupStat
+	var cur *model.BigGroupStat
+
+	for _, row := range rows {
+		if cur == nil || cur.BigGroup != row.BigGroup {
+			if cur != nil {
+				result = append(result, *cur)
+			}
+			cur = &model.BigGroupStat{
+				BigGroup: row.BigGroup,
+				Count:    row.BigGroupTotal,
+				HomeTag:  row.BigGroup == "宪法" || row.BigGroup == "法律",
+				More:     row.TotalSub > 3,
+				SubTypes: make([]model.SubTypeStat, 0, 3),
+			}
+		}
+		if row.Rank <= 3 {
+			cur.SubTypes = append(cur.SubTypes, model.SubTypeStat{
+				TypeID:   row.TypeID,
+				TypeName: row.TypeName,
+				Count:    row.Count,
+			})
+		}
+	}
+	if cur != nil {
+		result = append(result, *cur)
+	}
+
+	return result
+}
+
 func (r *LawRepository) GetMetaByVersionID(ctx context.Context, versionID string) (*model.LawMeta, error) {
 	var law model.LawMeta
 
