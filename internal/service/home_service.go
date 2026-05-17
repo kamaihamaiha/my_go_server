@@ -52,6 +52,7 @@ type CommonLawsSection struct {
 
 type CommonLawItem struct {
 	UUID           string `json:"uuid"`
+	CommonTypeID   int    `json:"common_type_id"` // 对应 common_law_type 表的 id
 	TypeID         int    `json:"type_id"`
 	LawType        string `json:"law_type"`
 	LawTypeDisplay string `json:"law_type_display"`
@@ -184,19 +185,27 @@ func (s *LawService) buildHomeLaws(ctx context.Context, now time.Time) (*HomeLaw
 		})
 	}
 
-	commonItems := make([]CommonLawItem, 0, len(commonLawDefs))
-	for _, def := range commonLawDefs {
-		count, err := s.lawRepo.CountByTitleKeywords(ctx, def.Keywords)
-		if err != nil {
-			return nil, err
-		}
+	// 从 common_law_type 和 common_laws 表查询常用法律数据
+	commonTypes, err := s.commonLawRepo.ListAllTypes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	counts, err := s.commonLawRepo.GetTypesCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	commonItems := make([]CommonLawItem, 0, len(commonTypes))
+	for _, t := range commonTypes {
 		commonItems = append(commonItems, CommonLawItem{
-			UUID:           def.UUID,
-			TypeID:         def.TypeID,
-			LawType:        def.LawType,
-			LawTypeDisplay: def.LawTypeDisplay,
-			Icon:           def.Icon,
-			Count:          int(count),
+			UUID:           t.UUID,
+			CommonTypeID:   t.ID,
+			TypeID:         t.TypeID,
+			LawType:        t.LawType,
+			LawTypeDisplay: t.LawTypeDisplay,
+			Icon:           t.Icon,
+			Count:          int(counts[t.ID]),
 		})
 	}
 

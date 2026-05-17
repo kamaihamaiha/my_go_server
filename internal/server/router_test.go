@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -318,15 +319,23 @@ func newTestRouter(t *testing.T, detailDir string) *gin.Engine {
 	t.Helper()
 
 	dbPath := createTestSQLiteDatabase(t)
-	db, err := database.OpenReadOnlySQLite(dbPath)
+	db, err := database.OpenSQLiteCreate(dbPath)
 	if err != nil {
-		t.Fatalf("open read-only sqlite: %v", err)
+		t.Fatalf("open sqlite: %v", err)
 	}
 
 	typeRepo := repository.NewTypeRepository(db)
 	lawRepo := repository.NewLawRepository(db)
 	parsedLawRepo := repository.NewParsedLawRepository(detailDir)
-	lawService := service.NewLawService(typeRepo, lawRepo, parsedLawRepo)
+	commonLawRepo := repository.NewCommonLawRepository(db)
+
+	// 同步常用法律数据
+	syncService := service.NewSyncService(commonLawRepo, lawRepo)
+	if err := syncService.SyncCommonLaws(context.Background()); err != nil {
+		t.Fatalf("sync common laws: %v", err)
+	}
+
+	lawService := service.NewLawService(typeRepo, lawRepo, parsedLawRepo, commonLawRepo)
 	lawHandler := handler.NewLawHandler(lawService)
 
 	return server.NewRouter(lawHandler)
@@ -359,6 +368,25 @@ func createTestSQLiteDatabase(t *testing.T) string {
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL,
 			parent_id INTEGER
+		);`,
+		`CREATE TABLE common_law_type (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			uuid TEXT NOT NULL UNIQUE,
+			type_id INTEGER NOT NULL,
+			law_type TEXT NOT NULL UNIQUE,
+			law_type_display TEXT NOT NULL,
+			icon TEXT NOT NULL,
+			keywords TEXT NOT NULL,
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE TABLE common_laws (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			common_law_type_id INTEGER NOT NULL,
+			law_id TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(common_law_type_id, law_id)
 		);`,
 	} {
 		if err := db.Exec(statement).Error; err != nil {

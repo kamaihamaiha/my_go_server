@@ -79,6 +79,39 @@ func (h *LawHandler) GetHomeLaws(c *gin.Context) {
 	response.Success(c, result)
 }
 
+func (h *LawHandler) ListCommonLawsByType(c *gin.Context) {
+	typeID, err := strconv.Atoi(c.Param("typeId"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "typeId 必须是整数")
+		return
+	}
+
+	page, err := strconv.Atoi(defaultQuery(c, "page", "1"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "page 必须是整数")
+		return
+	}
+
+	pageSize, err := strconv.Atoi(defaultQuery(c, "pageSize", "20"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "pageSize 必须是整数")
+		return
+	}
+
+	result, err := h.lawService.ListCommonLawsByType(c.Request.Context(), typeID, page, pageSize)
+	if err != nil {
+		if errors.Is(err, service.ErrCommonLawTypeNotFound) {
+			response.Error(c, http.StatusNotFound, "常用法律类型不存在")
+			return
+		}
+
+		response.Error(c, http.StatusInternalServerError, "查询常用法律列表失败")
+		return
+	}
+
+	response.Success(c, result)
+}
+
 func (h *LawHandler) ListBigGroupStats(c *gin.Context) {
 	stats, err := h.lawService.ListBigGroupStats(c.Request.Context())
 	if err != nil {

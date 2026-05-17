@@ -18,14 +18,16 @@ const (
 )
 
 var (
-	ErrTypeNotFound = errors.New("type not found")
-	ErrLawNotFound  = errors.New("law not found")
+	ErrTypeNotFound       = errors.New("type not found")
+	ErrLawNotFound        = errors.New("law not found")
+	ErrCommonLawTypeNotFound = errors.New("common law type not found")
 )
 
 type LawService struct {
-	typeRepo      *repository.TypeRepository
-	lawRepo       *repository.LawRepository
-	parsedLawRepo *repository.ParsedLawRepository
+	typeRepo       *repository.TypeRepository
+	lawRepo        *repository.LawRepository
+	parsedLawRepo  *repository.ParsedLawRepository
+	commonLawRepo  *repository.CommonLawRepository
 }
 
 type TypePreview struct {
@@ -51,6 +53,22 @@ type TypeInfo struct {
 	ParentID *int   `json:"parentId"`
 }
 
+type CommonLawTypeInfo struct {
+	ID             int    `json:"id"`
+	LawType        string `json:"lawType"`
+	LawTypeDisplay string `json:"lawTypeDisplay"`
+	Icon           string `json:"icon"`
+}
+
+type PaginatedCommonLawList struct {
+	Type       CommonLawTypeInfo   `json:"type"`
+	Page       int                 `json:"page"`
+	PageSize   int                 `json:"pageSize"`
+	Total      int64               `json:"total"`
+	TotalPages int                 `json:"totalPages"`
+	Items      []model.LawSummary  `json:"items"`
+}
+
 type ParsedLawDetail struct {
 	VersionID string           `json:"versionId"`
 	Title     string           `json:"title"`
@@ -58,11 +76,12 @@ type ParsedLawDetail struct {
 	Content   *json.RawMessage `json:"content"`
 }
 
-func NewLawService(typeRepo *repository.TypeRepository, lawRepo *repository.LawRepository, parsedLawRepo *repository.ParsedLawRepository) *LawService {
+func NewLawService(typeRepo *repository.TypeRepository, lawRepo *repository.LawRepository, parsedLawRepo *repository.ParsedLawRepository, commonLawRepo *repository.CommonLawRepository) *LawService {
 	return &LawService{
-		typeRepo:      typeRepo,
-		lawRepo:       lawRepo,
-		parsedLawRepo: parsedLawRepo,
+		typeRepo:       typeRepo,
+		lawRepo:        lawRepo,
+		parsedLawRepo:  parsedLawRepo,
+		commonLawRepo:  commonLawRepo,
 	}
 }
 
@@ -118,6 +137,43 @@ func (s *LawService) ListLawsByType(ctx context.Context, typeID, page, pageSize 
 			ID:       lawType.ID,
 			Name:     lawType.Name,
 			ParentID: lawType.ParentID,
+		},
+		Page:       page,
+		PageSize:   pageSize,
+		Total:      total,
+		TotalPages: totalPages(total, pageSize),
+		Items:      items,
+	}, nil
+}
+
+func (s *LawService) ListCommonLawsByType(ctx context.Context, typeID, page, pageSize int) (*PaginatedCommonLawList, error) {
+	commonLawType, err := s.commonLawRepo.GetTypeByID(ctx, typeID)
+	if err != nil {
+		return nil, err
+	}
+	if commonLawType == nil {
+		return nil, ErrCommonLawTypeNotFound
+	}
+
+	page, pageSize = normalizePagination(page, pageSize)
+
+	total, err := s.commonLawRepo.CountByTypeID(ctx, typeID)
+	if err != nil {
+		return nil, err
+	}
+
+	offset := (page - 1) * pageSize
+	items, err := s.commonLawRepo.ListLawsByTypeID(ctx, typeID, offset, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PaginatedCommonLawList{
+		Type: CommonLawTypeInfo{
+			ID:             commonLawType.ID,
+			LawType:        commonLawType.LawType,
+			LawTypeDisplay: commonLawType.LawTypeDisplay,
+			Icon:           commonLawType.Icon,
 		},
 		Page:       page,
 		PageSize:   pageSize,

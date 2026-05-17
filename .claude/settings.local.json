@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sqlite3 data/db/laws.db \"SELECT id, name, parent_id FROM types ORDER BY id;\")",
+      "Bash(sqlite3 *)",
+      "Bash(go build *)",
+      "Bash(go test *)",
+      "Bash(go vet *)",
+      "Bash(GOTOOLCHAIN=local HTTP_ADDR=:8090 go run *)",
+      "Bash(curl -sf -o /dev/null http://localhost:8090/healthz)",
+      "Bash(curl -s http://localhost:8090/api/v1/home/laws)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

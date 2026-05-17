@@ -222,3 +222,36 @@ func (r *LawRepository) GetMetaByVersionID(ctx context.Context, versionID string
 
 	return &law, nil
 }
+
+// FindIDsByTitleKeywords 根据关键字查找法律 ID 列表
+func (r *LawRepository) FindIDsByTitleKeywords(ctx context.Context, keywords []string) ([]string, error) {
+	if len(keywords) == 0 {
+		return nil, nil
+	}
+
+	conditions := make([]string, 0, len(keywords))
+	args := make([]any, 0, len(keywords))
+	for _, kw := range keywords {
+		kw = strings.TrimSpace(kw)
+		if kw == "" {
+			continue
+		}
+		conditions = append(conditions, "title LIKE ?")
+		args = append(args, "%"+kw+"%")
+	}
+	if len(conditions) == 0 {
+		return nil, nil
+	}
+
+	var ids []string
+	err := r.db.WithContext(ctx).
+		Model(&model.LawList{}).
+		Select("versionId").
+		Where(strings.Join(conditions, " OR "), args...).
+		Pluck("versionId", &ids).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}

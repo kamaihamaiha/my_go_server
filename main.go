@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"log"
 	"os"
@@ -17,7 +18,8 @@ func main() {
 	cfg := config.Load()
 	logParsedLawDirStatus(cfg.LawDetailJSONDir)
 
-	db, err := database.OpenReadOnlySQLite(cfg.LawDBPath)
+	// 使用可创建表的数据库连接（支持读写和表创建）
+	db, err := database.OpenSQLiteCreate(cfg.LawDBPath)
 	if err != nil {
 		log.Fatalf("open sqlite database: %v", err)
 	}
@@ -25,7 +27,15 @@ func main() {
 	typeRepo := repository.NewTypeRepository(db)
 	lawRepo := repository.NewLawRepository(db)
 	parsedLawRepo := repository.NewParsedLawRepository(cfg.LawDetailJSONDir)
-	lawService := service.NewLawService(typeRepo, lawRepo, parsedLawRepo)
+	commonLawRepo := repository.NewCommonLawRepository(db)
+
+	// 启动时同步常用法律数据
+	syncService := service.NewSyncService(commonLawRepo, lawRepo)
+	if err := syncService.SyncCommonLaws(context.Background()); err != nil {
+		log.Printf("Warning: sync common laws failed: %v", err)
+	}
+
+	lawService := service.NewLawService(typeRepo, lawRepo, parsedLawRepo, commonLawRepo)
 	lawHandler := handler.NewLawHandler(lawService)
 	router := server.NewRouter(lawHandler)
 
